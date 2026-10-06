@@ -31,7 +31,16 @@ export default function Header() {
           {user ? (
             <>
               <Link to="/my-bookings" className="hover:text-secondary transition">Đơn của tôi</Link>
-              <span className="text-sm">👤 {user.name}</span>
+
+              {/* 🆕 Link đến Profile — nhấn vào tên user */}
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 hover:text-secondary transition"
+                title="Xem trang cá nhân"
+              >
+                <span className="text-sm">👤 {user.name}</span>
+              </Link>
+
               <button
                 onClick={handleLogout}
                 className="bg-red-500 hover:bg-red-600 px-4 py-1 rounded-lg text-sm transition"

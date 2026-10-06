@@ -8,6 +8,7 @@ import RoomList from './pages/RoomList';
 import RoomDetail from './pages/RoomDetail';
 import MyBookings from './pages/MyBookings';
 import Payment from './pages/Payment';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/rooms/:id" element={<RoomDetail />} />
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/payment/:id" element={<Payment />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
       <Footer />
