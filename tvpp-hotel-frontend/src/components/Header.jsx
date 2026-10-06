@@ -12,6 +12,14 @@ export default function Header() {
     navigate('/');
   };
 
+  // 🆕 Icon theo vai trò
+  const getRoleIcon = () => {
+    if (!user) return '👤';
+    if (user.role === 'ADMIN') return '👑';
+    if (user.role === 'RECEPTIONIST') return '🛎️';
+    return '👤'; // CUSTOMER
+  };
+
   return (
     <header className="bg-primary text-white shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -28,17 +36,35 @@ export default function Header() {
         <nav className="flex items-center gap-6">
           <Link to="/" className="hover:text-secondary transition">Trang chủ</Link>
           <Link to="/rooms" className="hover:text-secondary transition">Phòng</Link>
+
           {user ? (
             <>
-              <Link to="/my-bookings" className="hover:text-secondary transition">Đơn của tôi</Link>
+              {/* 🆕 Menu theo vai trò */}
+              {user.role === 'CUSTOMER' && (
+                <Link to="/my-bookings" className="hover:text-secondary transition">
+                  Đơn của tôi
+                </Link>
+              )}
 
-              {/* 🆕 Link đến Profile — nhấn vào tên user */}
+              {user.role === 'ADMIN' && (
+                <Link to="/admin" className="hover:text-secondary transition">
+                  👑 Quản trị
+                </Link>
+              )}
+
+              {user.role === 'RECEPTIONIST' && (
+                <Link to="/staff" className="hover:text-secondary transition">
+                  🛎️ Lễ tân
+                </Link>
+              )}
+
+              {/* 🆕 Badge user — Icon đổi theo vai trò */}
               <Link
                 to="/profile"
                 className="flex items-center gap-2 hover:text-secondary transition"
                 title="Xem trang cá nhân"
               >
-                <span className="text-sm">👤 {user.name}</span>
+                <span className="text-sm">{getRoleIcon()} {user.name}</span>
               </Link>
 
               <button
@@ -50,8 +76,13 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" className="hover:text-secondary transition">Đăng nhập</Link>
-              <Link to="/register" className="bg-secondary hover:bg-yellow-600 px-4 py-2 rounded-lg transition">
+              <Link to="/login" className="hover:text-secondary transition">
+                Đăng nhập
+              </Link>
+              <Link
+                to="/register"
+                className="bg-secondary hover:bg-yellow-600 px-4 py-2 rounded-lg transition"
+              >
                 Đăng ký
               </Link>
             </>

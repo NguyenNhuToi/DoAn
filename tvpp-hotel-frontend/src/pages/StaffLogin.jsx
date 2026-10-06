@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Login() {
+export default function StaffLogin() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -16,10 +16,10 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', {
         ...form,
-        expectedRole: 'CUSTOMER'
+        expectedRole: 'RECEPTIONIST'
       });
       login(data.data);
-      toast.success('Đăng nhập thành công!');
+      toast.success('🛎️ Đăng nhập Nhân viên thành công!');
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Đăng nhập thất bại');
@@ -29,24 +29,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-200 w-full max-w-md overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-yellow-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-lg border-2 border-yellow-300 w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-linear-to-r from-blue-600 to-blue-800 text-white px-6 py-6 text-center">
-          <div className="text-5xl mb-2">👤</div>
-          <h2 className="text-2xl font-bold">Đăng nhập Khách hàng</h2>
-          <p className="text-blue-100 text-sm mt-1">Dành cho khách đặt phòng</p>
+        <div className="bg-linear-to-r from-yellow-500 to-yellow-700 text-white px-6 py-6 text-center">
+          <div className="text-5xl mb-2">🛎️</div>
+          <h2 className="text-2xl font-bold">Đăng nhập Nhân viên</h2>
+          <p className="text-yellow-100 text-sm mt-1">Dành cho lễ tân khách sạn</p>
         </div>
 
         {/* Form */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block mb-1 font-medium">📧 Email</label>
+              <label className="block mb-1 font-medium">📧 Email nhân viên</label>
               <input
                 type="email"
                 className="input-field"
-                placeholder="VD: khach@email.com"
+                placeholder="VD: nhanvien@tvpp.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
@@ -64,37 +64,29 @@ export default function Login() {
               />
             </div>
 
-            <div className="text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-primary hover:underline font-medium"
-              >
-                🔑 Quên mật khẩu?
-              </Link>
-            </div>
-
-            <button type="submit" className="btn-primary w-full py-3" disabled={loading}>
+            <button
+              type="submit"
+              className="bg-yellow-500 hover:bg-yellow-600 text-white w-full py-3 rounded-lg font-bold transition"
+              disabled={loading}
+            >
               {loading ? '⏳ Đang xử lý...' : '➡️ Đăng nhập'}
             </button>
           </form>
 
-          {/* Link đăng ký */}
-          <p className="text-center mt-4 text-gray-600 text-sm">
-            Chưa có tài khoản?{' '}
-            <Link to="/register" className="text-primary font-medium hover:underline">
-              Đăng ký ngay
-            </Link>
-          </p>
+          {/* Thông báo */}
+          <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded text-sm text-yellow-800">
+            ⚠️ Chỉ tài khoản <strong>Nhân viên</strong> mới đăng nhập được ở cổng này.
+          </div>
 
           {/* Chuyển sang cổng khác */}
           <div className="mt-6 pt-6 border-t-2 border-dashed border-gray-200">
-            <p className="text-center text-gray-500 text-xs mb-3">Bạn là nhân viên hoặc admin?</p>
+            <p className="text-center text-gray-500 text-xs mb-3">Bạn là khách hàng hoặc admin?</p>
             <div className="grid grid-cols-2 gap-2">
               <Link
-                to="/staff/login"
-                className="text-center bg-yellow-50 border border-yellow-300 text-yellow-700 py-2 rounded-lg hover:bg-yellow-100 transition text-sm font-medium"
+                to="/login"
+                className="text-center bg-blue-50 border border-blue-300 text-blue-700 py-2 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
               >
-                🛎️ Nhân viên
+                👤 Khách hàng
               </Link>
               <Link
                 to="/admin/login"
