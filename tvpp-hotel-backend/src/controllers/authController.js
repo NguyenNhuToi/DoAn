@@ -6,24 +6,35 @@ const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, {
   expiresIn: process.env.JWT_EXPIRE
 });
 
-// ========== ĐĂNG KÝ ==========
+const isStrongPassword = (password) => {
+  if (password.length < 6) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+  return true;
+};
+
+const PASSWORD_REQUIREMENTS =
+  'Mật khẩu phải có ít nhất 6 ký tự, 1 chữ VIẾT HOA, 1 chữ số và 1 ký tự đặc biệt';
+
+// Đăng ký
 exports.register = async (req, res) => {
   try {
     const { name, email, password, phone, address } = req.body;
     const exists = await User.findOne({ where: { email } });
     if (exists) return res.status(400).json({ message: 'Email đã được sử dụng' });
 
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_REQUIREMENTS });
+    }
+
     const user = await User.create({ name, email, password, phone, address });
     res.status(201).json({
       success: true,
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-        token: generateToken(user.id)
+        id: user.id, name: user.name, email: user.email,
+        phone: user.phone, address: user.address,
+        role: user.role, token: generateToken(user.id)
       }
     });
   } catch (error) {
@@ -31,45 +42,29 @@ exports.register = async (req, res) => {
   }
 };
 
-// ========== ĐĂNG NHẬP (HỖ TRỢ PHÂN VAI TRÒ) ==========
+// Đăng nhập
 exports.login = async (req, res) => {
   try {
     const { email, password, expectedRole } = req.body;
-
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(401).json({ message: 'Email hoặc mật khẩu sai' });
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(401).json({ message: 'Email hoặc mật khẩu sai' });
 
-    if (expectedRole) {
-      if (expectedRole === 'CUSTOMER' && user.role !== 'CUSTOMER') {
-        return res.status(403).json({
-          message: 'Tài khoản này không phải Khách hàng. Vui lòng đăng nhập đúng cổng.'
-        });
-      }
-      if (expectedRole === 'RECEPTIONIST' && user.role !== 'RECEPTIONIST') {
-        return res.status(403).json({
-          message: 'Tài khoản này không phải Nhân viên. Vui lòng đăng nhập đúng cổng.'
-        });
-      }
-      if (expectedRole === 'ADMIN' && user.role !== 'ADMIN') {
-        return res.status(403).json({
-          message: 'Tài khoản này không phải Admin. Vui lòng đăng nhập đúng cổng.'
-        });
-      }
+    if (expectedRole && expectedRole !== user.role) {
+      const roles = { CUSTOMER: 'Khách hàng', RECEPTIONIST: 'Nhân viên', ADMIN: 'Admin' };
+      return res.status(403).json({
+        message: `Tài khoản này không phải ${roles[expectedRole]}. Vui lòng đăng nhập đúng cổng.`
+      });
     }
 
     res.json({
       success: true,
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-        token: generateToken(user.id)
+        id: user.id, name: user.name, email: user.email,
+        phone: user.phone, address: user.address,
+        role: user.role, token: generateToken(user.id)
       }
     });
   } catch (error) {
@@ -77,12 +72,12 @@ exports.login = async (req, res) => {
   }
 };
 
-// ========== LẤY THÔNG TIN USER HIỆN TẠI ==========
+// Lấy thông tin user
 exports.getMe = async (req, res) => {
   res.json({ success: true, data: req.user });
 };
 
-// ========== CẬP NHẬT THÔNG TIN CÁ NHÂN ==========
+// Cập nhật profile
 exports.updateProfile = async (req, res) => {
   try {
     const { name, phone, address } = req.body;
@@ -93,14 +88,10 @@ exports.updateProfile = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Cập nhật thông tin thành công',
+      message: 'Cập nhật thành công',
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role
+        id: user.id, name: user.name, email: user.email,
+        phone: user.phone, address: user.address, role: user.role
       }
     });
   } catch (error) {
@@ -108,47 +99,40 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// ========== ĐỔI MẬT KHẨU ==========
+// Đổi mật khẩu
 exports.changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ mật khẩu cũ và mới' });
+      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ' });
     }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Mật khẩu mới phải từ 6 ký tự' });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_REQUIREMENTS });
     }
 
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
 
     const isMatch = await user.comparePassword(oldPassword);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Mật khẩu cũ không đúng' });
-    }
+    if (!isMatch) return res.status(400).json({ message: 'Mật khẩu cũ không đúng' });
 
     user.password = newPassword;
     await user.save();
 
-    res.json({
-      success: true,
-      message: 'Đổi mật khẩu thành công'
-    });
+    res.json({ success: true, message: 'Đổi mật khẩu thành công' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ========== QUÊN MẬT KHẨU — Bước 1 ==========
+// Quên mật khẩu
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Vui lòng nhập email' });
 
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ message: 'Email không tồn tại trong hệ thống' });
+    if (!user) return res.status(404).json({ message: 'Email không tồn tại' });
 
     const resetToken = jwt.sign(
       { id: user.id, purpose: 'reset-password' },
@@ -158,40 +142,34 @@ exports.forgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Xác thực email thành công. Vui lòng đặt lại mật khẩu.',
-      data: {
-        resetToken,
-        email: user.email,
-        name: user.name
-      }
+      message: 'Xác thực thành công',
+      data: { resetToken, email: user.email, name: user.name }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ========== ĐẶT LẠI MẬT KHẨU — Bước 2 ==========
+// Đặt lại mật khẩu
 exports.resetPassword = async (req, res) => {
   try {
     const { resetToken, newPassword } = req.body;
-
     if (!resetToken || !newPassword) {
       return res.status(400).json({ message: 'Thiếu thông tin' });
     }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Mật khẩu phải từ 6 ký tự' });
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_REQUIREMENTS });
     }
 
     let decoded;
     try {
       decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
     } catch (err) {
-      return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+      return res.status(400).json({ message: 'Token không hợp lệ' });
     }
 
     if (decoded.purpose !== 'reset-password') {
-      return res.status(400).json({ message: 'Token không đúng mục đích' });
+      return res.status(400).json({ message: 'Token sai mục đích' });
     }
 
     const user = await User.findByPk(decoded.id);
@@ -200,69 +178,51 @@ exports.resetPassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    res.json({
-      success: true,
-      message: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.'
-    });
+    res.json({ success: true, message: 'Đặt lại mật khẩu thành công' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ========== 🆕 ADMIN — TẠO TÀI KHOẢN NHÂN VIÊN/ADMIN ==========
+// Admin tạo user
 exports.createUserByAdmin = async (req, res) => {
   try {
-    // Chỉ ADMIN mới được tạo (double-check middleware)
     if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Chỉ Admin mới có quyền tạo tài khoản' });
+      return res.status(403).json({ message: 'Chỉ Admin mới có quyền' });
     }
 
     const { name, email, password, phone, address, role } = req.body;
-
-    // Validate
     if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ Tên, Email và Mật khẩu' });
+      return res.status(400).json({ message: 'Vui lòng nhập đầy đủ' });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_REQUIREMENTS });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Mật khẩu phải từ 6 ký tự' });
-    }
-
-    // Chỉ cho tạo 3 role hợp lệ
     const allowedRoles = ['CUSTOMER', 'RECEPTIONIST', 'ADMIN'];
     const finalRole = role || 'CUSTOMER';
     if (!allowedRoles.includes(finalRole)) {
       return res.status(400).json({ message: 'Vai trò không hợp lệ' });
     }
 
-    // Kiểm tra email trùng
     const exists = await User.findOne({ where: { email } });
     if (exists) return res.status(400).json({ message: 'Email đã được sử dụng' });
 
     const user = await User.create({
-      name, email, password, phone, address,
-      role: finalRole
+      name, email, password, phone, address, role: finalRole
     });
 
     res.status(201).json({
       success: true,
       message: `Tạo tài khoản ${finalRole} thành công`,
-      data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-        createdAt: user.createdAt
-      }
+      data: { id: user.id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ========== 🆕 ADMIN — LẤY DANH SÁCH USER ==========
+// Admin xem users
 exports.getAllUsers = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') {
@@ -285,11 +245,11 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// ========== 🆕 ADMIN — ĐỔI ROLE USER ==========
+// Admin đổi role
 exports.updateUserRole = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Chỉ Admin mới có quyền' });
+      return res.status(403).json({ message: 'Chỉ Admin' });
     }
 
     const { role } = req.body;
@@ -300,40 +260,26 @@ exports.updateUserRole = async (req, res) => {
 
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
-
-    // Không cho admin tự đổi role của mình → tránh tự hạ quyền
     if (user.id === req.user.id) {
-      return res.status(400).json({ message: 'Không thể đổi vai trò của chính mình' });
+      return res.status(400).json({ message: 'Không thể đổi chính mình' });
     }
 
     await user.update({ role });
-
-    res.json({
-      success: true,
-      message: `Đã đổi vai trò thành ${role}`,
-      data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    res.json({ success: true, message: `Đã đổi thành ${role}`, data: user });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// ========== 🆕 ADMIN — XÓA USER ==========
+// Admin xóa user
 exports.deleteUser = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Chỉ Admin mới có quyền' });
+      return res.status(403).json({ message: 'Chỉ Admin' });
     }
 
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ message: 'Không tìm thấy user' });
-
-    // Không cho xóa chính mình
     if (user.id === req.user.id) {
       return res.status(400).json({ message: 'Không thể xóa chính mình' });
     }
